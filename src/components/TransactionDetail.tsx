@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Typography, Grid, Avatar, Paper, IconButton, makeStyles } from "@material-ui/core";
 import { AvatarGroup } from "@material-ui/lab";
 import { ThumbUpAltOutlined as LikeIcon, CommentRounded as CommentIcon } from "@material-ui/icons";
@@ -12,6 +12,9 @@ import {
 import CommentsList from "./CommentList";
 import TransactionTitle from "./TransactionTitle";
 import TransactionAmount from "./TransactionAmount";
+import { useActor } from "@xstate/react";
+import { authService } from "../machines/authMachine";
+import Tailorr from "../tailorr-api";
 
 const useStyles = makeStyles((theme) => ({
   paper: {
@@ -86,6 +89,19 @@ const TransactionDetail: React.FC<TransactionProps> = ({
   currentUser,
 }) => {
   const classes = useStyles();
+  const [canUseCnR, setCanUseCnR] = useState(true);
+  const [authState] = useActor(authService);
+
+  useEffect(() => {
+    const tailorrCanUse = async () => {
+      if (authState?.context?.user) {
+        let canUse = await Tailorr.canUseFeature("notifications", authState.context.user.username);
+        setCanUseCnR(canUse);
+        console.log("Can use comment and react?", canUse);
+      }
+    };
+    tailorrCanUse();
+  }, [authState]);
 
   return (
     <Paper className={classes.paper}>
@@ -148,8 +164,11 @@ const TransactionDetail: React.FC<TransactionProps> = ({
             <Grid item>
               <IconButton
                 color="primary"
-                disabled={currentUserLikesTransaction(currentUser, transaction)}
-                onClick={() => transactionLike(transaction.id)}
+                disabled={currentUserLikesTransaction(currentUser, transaction) || !canUseCnR}
+                onClick={() => {
+                  transactionLike(transaction.id);
+                  Tailorr.reportUse("comment-and-react", authState.context.user?.username, 1);
+                }}
                 data-test={`transaction-like-button-${transaction.id}`}
               >
                 <LikeIcon />

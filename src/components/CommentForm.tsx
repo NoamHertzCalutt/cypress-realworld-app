@@ -1,7 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { makeStyles, TextField } from "@material-ui/core";
 import { Formik, Form, Field, FieldProps } from "formik";
 import { string, object } from "yup";
+
+import Tailorr from "../tailorr-api";
+import { useActor } from "@xstate/react";
+import { authService } from "../machines/authMachine";
 
 const validationSchema = object({
   content: string(),
@@ -28,6 +32,22 @@ export interface CommentFormProps {
 const CommentForm: React.FC<CommentFormProps> = ({ transactionId, transactionComment }) => {
   const classes = useStyles();
   const initialValues = { content: "" };
+  const [authState] = useActor(authService);
+  const [disabled, setDisabled] = useState(false);
+
+  useEffect(() => {
+    const tailorrCanUse = async () => {
+      if (authState?.context?.user) {
+        let canUse = await Tailorr.canUseFeature(
+          "comment-and-react",
+          authState.context.user.username
+        );
+        setDisabled(!canUse);
+        console.log("Can use comment and react?", canUse);
+      }
+    };
+    tailorrCanUse();
+  }, [authState]);
 
   return (
     <div>
@@ -35,6 +55,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ transactionId, transactionCom
         initialValues={initialValues}
         validationSchema={validationSchema}
         onSubmit={(values, { setSubmitting }) => {
+          Tailorr.reportUse("comment-and-react", authState.context.user?.username, 1);
           setSubmitting(true);
           transactionComment({ transactionId, ...values });
         }}
@@ -54,6 +75,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ transactionId, transactionCom
                   error={meta.touched && Boolean(meta.error)}
                   helperText={meta.touched ? meta.error : ""}
                   {...field}
+                  disabled={disabled}
                 />
               )}
             </Field>

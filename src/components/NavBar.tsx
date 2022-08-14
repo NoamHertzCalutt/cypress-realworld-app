@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import clsx from "clsx";
 import {
   BaseActionObject,
@@ -31,6 +31,8 @@ import { DataContext, DataEvents, DataSchema } from "../machines/dataMachine";
 import TransactionNavTabs from "./TransactionNavTabs";
 import RWALogo from "./SvgRwaLogo";
 import RWALogoIcon from "./SvgRwaIconLogo";
+import { authService } from "../machines/authMachine";
+import Tailorr from "../tailorr-api";
 
 const drawerWidth = 240;
 
@@ -100,9 +102,22 @@ const NavBar: React.FC<NavBarProps> = ({ drawerOpen, toggleDrawer, notifications
   const classes = useStyles();
   const theme = useTheme();
   const [notificationsState] = useActor(notificationsService);
+  const [authState] = useActor(authService);
+  const [canUseNotifications, setCanUseNotifications] = useState(false);
 
   const allNotifications = notificationsState?.context?.results;
   const xsBreakpoint = useMediaQuery(theme.breakpoints.only("xs"));
+
+  useEffect(() => {
+    const tailorrCanUse = async () => {
+      if (authState?.context?.user) {
+        let canUse = await Tailorr.canUseFeature("notifications", authState.context.user.username);
+        setCanUseNotifications(canUse);
+        console.log("Can use notifications?", canUse);
+      }
+    };
+    tailorrCanUse();
+  }, [authState]);
 
   return (
     <AppBar position="absolute" className={clsx(classes.appBar, drawerOpen && classes.appBarShift)}>
@@ -142,20 +157,22 @@ const NavBar: React.FC<NavBarProps> = ({ drawerOpen, toggleDrawer, notifications
         >
           <AttachMoneyIcon /> New
         </Button>
-        <IconButton
-          color="inherit"
-          component={RouterLink}
-          to="/notifications"
-          data-test="nav-top-notifications-link"
-        >
-          <Badge
-            badgeContent={allNotifications ? allNotifications.length : undefined}
-            data-test="nav-top-notifications-count"
-            classes={{ badge: classes.customBadge }}
+        {canUseNotifications && (
+          <IconButton
+            color="inherit"
+            component={RouterLink}
+            to="/notifications"
+            data-test="nav-top-notifications-link"
           >
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
+            <Badge
+              badgeContent={allNotifications ? allNotifications.length : undefined}
+              data-test="nav-top-notifications-count"
+              classes={{ badge: classes.customBadge }}
+            >
+              <NotificationsIcon />
+            </Badge>
+          </IconButton>
+        )}
       </Toolbar>
       {(match.pathname === "/" || RegExp("/(?:public|contacts|personal)").test(match.pathname)) && (
         <TransactionNavTabs />

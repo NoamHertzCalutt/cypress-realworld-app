@@ -8,9 +8,9 @@ export default function TransactionNavTabs() {
   // Route Lookup for tabs
   const navUrls: any = {
     "/": 0,
-    "/public": 0,
+    "/public": 2,
     "/contacts": 1,
-    "/personal": 2,
+    "/personal": 0,
   };
 
   // Set selected tab based on url
@@ -28,9 +28,9 @@ export default function TransactionNavTabs() {
       centered
       data-test="nav-transaction-tabs"
     >
-      <Tab label="Everyone" component={Link} to="/" data-test="nav-public-tab" />
-      <Tab label="Friends" component={Link} to="/contacts" data-test="nav-contacts-tab" />
+      {/* <Tab label="Everyone" component={Link} to="/" data-test="nav-public-tab" /> */}
       <Tab label="Mine" component={Link} to="/personal" data-test="nav-personal-tab" />
+      <Tab label="Friends" component={Link} to="/contacts" data-test="nav-contacts-tab" />
     </Tabs>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useActor } from "@xstate/react";
 import {
   BaseActionObject,
@@ -14,6 +14,7 @@ import { AuthMachineContext, AuthMachineEvents, AuthMachineSchema } from "../mac
 import { DataContext, DataEvents, DataSchema } from "../machines/dataMachine";
 import BankAccountForm from "../components/BankAccountForm";
 import BankAccountList from "../components/BankAccountList";
+import Tailorr from "../tailorr-api";
 
 export interface Props {
   authService: Interpreter<AuthMachineContext, AuthMachineSchema, AuthMachineEvents, any, any>;
@@ -40,16 +41,31 @@ const BankAccountsContainer: React.FC<Props> = ({ authService, bankAccountsServi
   const classes = useStyles();
   const [authState] = useActor(authService);
   const [bankAccountsState, sendBankAccounts] = useActor(bankAccountsService);
+  const [reachedMaxBankAccounts, setReachedMaxBankAccounts] = useState(false);
 
   const currentUser = authState?.context.user;
 
+  //Tailorr Demo
+  useEffect(() => {
+    const tailorrCanUse = async (featureId) => {
+      if (authState?.context?.user && bankAccountsState?.context?.results) {
+        let canUse = await Tailorr.canUseFeature(featureId, authState.context.user.username);
+        setReachedMaxBankAccounts(!canUse);
+      }
+    };
+    tailorrCanUse("bank-accounts");
+  }, [authState, bankAccountsState]);
+
   const createBankAccount = (payload: any) => {
+    // Tailorr.reportUse(payload.featureId, payload.customer, payload.num_accounts+1);
     sendBankAccounts({ type: "CREATE", ...payload });
   };
 
   const deleteBankAccount = (payload: any) => {
+    // Tailorr.reportUse(payload.featureId, payload.customer, payload.num_accounts-1);
     sendBankAccounts({ type: "DELETE", ...payload });
   };
+  //Tailorr Demo END
 
   useEffect(() => {
     sendBankAccounts("FETCH");
@@ -75,6 +91,7 @@ const BankAccountsContainer: React.FC<Props> = ({ authService, bankAccountsServi
           </Typography>
         </Grid>
         <Grid item>
+          {/*Tailorr Demo*/}
           <Button
             variant="contained"
             color="primary"
@@ -82,9 +99,11 @@ const BankAccountsContainer: React.FC<Props> = ({ authService, bankAccountsServi
             component={RouterLink}
             to="/bankaccounts/new"
             data-test="bankaccount-new"
+            disabled={reachedMaxBankAccounts}
           >
             Create
           </Button>
+          {/*Tailorr Demo END*/}
         </Grid>
       </Grid>
       <BankAccountList

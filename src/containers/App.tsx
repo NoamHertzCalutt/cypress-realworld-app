@@ -13,6 +13,12 @@ import SignUpForm from "../components/SignUpForm";
 import { bankAccountsMachine } from "../machines/bankAccountsMachine";
 import PrivateRoutesContainer from "./PrivateRoutesContainer";
 
+//Tailorr Demo
+import Tailorr from "../tailorr-api";
+
+Tailorr.init("fc4fd1a2-07a8-454e-9eba-7ba755b80ecf");
+//Tailorr Demo END
+
 // @ts-ignore
 if (window.Cypress) {
   // Expose authService on window for Cypress

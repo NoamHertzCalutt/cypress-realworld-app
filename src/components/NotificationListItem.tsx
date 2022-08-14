@@ -25,10 +25,13 @@ import {
   isPaymentReceivedNotification,
 } from "../utils/transactionUtils";
 import { NotificationResponseItem } from "../models";
+import { useActor } from "@xstate/react";
+import Tailorr from "../tailorr-api";
 
 export interface NotificationListItemProps {
   notification: NotificationResponseItem;
   updateNotification: Function;
+  authService: Interpreter<AuthMachineContext, AuthMachineSchema, AuthMachineEvents, any, any>;
 }
 
 const useStyles = makeStyles({
@@ -52,12 +55,14 @@ const useStyles = makeStyles({
 const NotificationListItem: React.FC<NotificationListItemProps> = ({
   notification,
   updateNotification,
+  authService,
 }) => {
   const classes = useStyles();
   const theme = useTheme();
   let listItemText = undefined;
   let listItemIcon = undefined;
   const xsBreakpoint = useMediaQuery(theme.breakpoints.only("xs"));
+  const [authState] = useActor(authService);
 
   if (isCommentNotification(notification)) {
     listItemIcon = <CommentIcon />;
@@ -97,7 +102,12 @@ const NotificationListItem: React.FC<NotificationListItemProps> = ({
         <Button
           color="primary"
           size="small"
-          onClick={() => updateNotification({ id: notification.id, isRead: true })}
+          onClick={() => {
+            updateNotification({ id: notification.id, isRead: true });
+            if (authState?.context?.user?.username) {
+              Tailorr.reportUse("notifications", authState.context.user.username, 1);
+            }
+          }}
           data-test={`notification-mark-read-${notification.id}`}
         >
           Dismiss

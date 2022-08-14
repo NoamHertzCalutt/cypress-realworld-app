@@ -21,6 +21,9 @@ import {
   //hasAmountQueryFields
 } from "../utils/transactionUtils";
 import { first, last } from "lodash/fp";
+import { authService } from "../machines/authMachine";
+import { useActor } from "@xstate/react";
+import Tailorr from "../tailorr-api";
 
 const useStyles = makeStyles((theme) => ({
   amountRangeRoot: {
@@ -55,10 +58,13 @@ const TransactionListAmountRangeFilter: React.FC<TransactionListAmountRangeFilte
 
   const initialAmountRange = [0, 100];
   const [amountRangeValue, setAmountRangeValue] = React.useState<number[]>(initialAmountRange);
-
+  const [authState] = useActor(authService);
   const [amountRangeAnchorEl, setAmountRangeAnchorEl] = React.useState<HTMLDivElement | null>(null);
 
   const handleAmountRangeClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (authState?.context?.user) {
+      Tailorr.reportUse("advanced-filters", authState.context.user.username, 1);
+    }
     setAmountRangeAnchorEl(event.currentTarget);
   };
 

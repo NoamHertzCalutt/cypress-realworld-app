@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
 import { Formik, Form, Field, FieldProps } from "formik";
 import { string, object, number } from "yup";
@@ -14,6 +14,9 @@ import {
   makeStyles,
 } from "@material-ui/core";
 import { User } from "../models";
+import Tailorr from "../tailorr-api";
+import { authService } from "../machines/authMachine";
+import { useActor } from "@xstate/react";
 
 const validationSchema = object({
   amount: number().required("Please enter a valid amount"),
@@ -87,12 +90,25 @@ const TransactionCreateStepTwo: React.FC<TransactionCreateStepTwoProps> = ({
 }) => {
   const classes = useStyles();
   const [transactionType, setTransactionType] = useState<string>();
+  const [outOfTransactions, setOutOfTransactions] = useState(false);
+  const [authState] = useActor(authService);
   const initialValues: FormValues = {
     amount: "",
     description: "",
     senderId: sender.id,
     receiverId: receiver.id,
   };
+
+  useEffect(() => {
+    const tailorrCanUse = async () => {
+      if (authState?.context?.user) {
+        let canUse = await Tailorr.canUseFeature("transactions", authState.context.user.username);
+        setOutOfTransactions(!canUse);
+        console.log("Can use transactions?", canUse);
+      }
+    };
+    tailorrCanUse();
+  }, [authState]);
 
   return (
     <Paper className={classes.paper} elevation={0}>
@@ -115,11 +131,10 @@ const TransactionCreateStepTwo: React.FC<TransactionCreateStepTwoProps> = ({
           validationSchema={validationSchema}
           validateOnMount={true}
           onSubmit={(values, { setSubmitting }) => {
+            Tailorr.reportUse("transactions", sender.username, 1);
             setSubmitting(true);
-
             // reset transactionType
             setTransactionType(undefined);
-
             createTransaction({ transactionType, ...values });
             showSnackbar({
               severity: "success",
@@ -191,7 +206,7 @@ const TransactionCreateStepTwo: React.FC<TransactionCreateStepTwoProps> = ({
                     color="primary"
                     className={classes.submit}
                     data-test="transaction-create-submit-payment"
-                    disabled={!isValid || isSubmitting}
+                    disabled={!isValid || isSubmitting || outOfTransactions}
                     onClick={() => setTransactionType("payment")}
                   >
                     Pay

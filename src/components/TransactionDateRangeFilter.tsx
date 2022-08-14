@@ -16,6 +16,9 @@ import InfiniteCalendar, { Calendar, withRange } from "react-infinite-calendar";
 import "react-infinite-calendar/styles.css";
 import { TransactionDateRangePayload } from "../models";
 import { hasDateQueryFields } from "../utils/transactionUtils";
+import Tailorr from "../tailorr-api";
+import { authService } from "../machines/authMachine";
+import { useActor } from "@xstate/react";
 
 const { indigo } = colors;
 const CalendarWithRange = withRange(Calendar);
@@ -46,7 +49,7 @@ const TransactionListDateRangeFilter: React.FC<TransactionListDateRangeFilterPro
   const theme = useTheme();
   const xsBreakpoint = useMediaQuery(theme.breakpoints.only("xs"));
   const queryHasDateFields = dateRangeFilters && hasDateQueryFields(dateRangeFilters);
-
+  const [authState] = useActor(authService);
   const [dateRangeAnchorEl, setDateRangeAnchorEl] = React.useState<HTMLDivElement | null>(null);
 
   const onCalendarSelect = (e: { eventType: number; start: any; end: any }) => {
@@ -60,6 +63,9 @@ const TransactionListDateRangeFilter: React.FC<TransactionListDateRangeFilterPro
   };
 
   const handleDateRangeClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (authState?.context?.user) {
+      Tailorr.reportUse("advanced-filters", authState.context.user.username, 1);
+    }
     setDateRangeAnchorEl(event.currentTarget);
   };
 

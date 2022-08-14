@@ -9,11 +9,13 @@ import RemindersIllustration from "./SvgUndrawReminders697P";
 export interface NotificationsListProps {
   notifications: NotificationResponseItem[];
   updateNotification: Function;
+  authService: Interpreter<AuthMachineContext, AuthMachineSchema, AuthMachineEvents, any, any>;
 }
 
 const NotificationsList: React.FC<NotificationsListProps> = ({
   notifications,
   updateNotification,
+  authService,
 }) => {
   return (
     <>
@@ -24,6 +26,7 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
               key={notification.id}
               notification={notification}
               updateNotification={updateNotification}
+              authService={authService}
             />
           ))}
         </List>

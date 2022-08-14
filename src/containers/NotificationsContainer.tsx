@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BaseActionObject,
   Interpreter,
@@ -12,6 +12,7 @@ import { NotificationUpdatePayload } from "../models";
 import NotificationList from "../components/NotificationList";
 import { DataContext, DataSchema, DataEvents } from "../machines/dataMachine";
 import { AuthMachineContext, AuthMachineEvents, AuthMachineSchema } from "../machines/authMachine";
+import Tailorr from "../tailorr-api";
 
 const useStyles = makeStyles((theme) => ({
   paper: {
@@ -38,24 +39,42 @@ const NotificationsContainer: React.FC<Props> = ({ authService, notificationsSer
   const classes = useStyles();
   const [authState] = useActor(authService);
   const [notificationsState, sendNotifications] = useActor(notificationsService);
+  const [canUseNotifications, setCanUseNotifications] = useState(true);
 
   useEffect(() => {
     sendNotifications({ type: "FETCH" });
+    const tailorrCanUse = async () => {
+      if (authState?.context?.user) {
+        let canUse = await Tailorr.canUseFeature("notifications", authState.context.user.username);
+        setCanUseNotifications(canUse);
+        console.log("Can use notifications?", canUse);
+      }
+    };
+    tailorrCanUse();
   }, [authState, sendNotifications]);
 
   const updateNotification = (payload: NotificationUpdatePayload) =>
     sendNotifications({ type: "UPDATE", ...payload });
 
   return (
-    <Paper className={classes.paper}>
-      <Typography component="h2" variant="h6" color="primary" gutterBottom>
-        Notifications
-      </Typography>
-      <NotificationList
-        notifications={notificationsState?.context?.results!}
-        updateNotification={updateNotification}
-      />
-    </Paper>
+    <>
+      {canUseNotifications ? (
+        <Paper className={classes.paper}>
+          <Typography component="h2" variant="h6" color="primary" gutterBottom>
+            Notifications
+          </Typography>
+          <NotificationList
+            notifications={notificationsState?.context?.results!}
+            updateNotification={updateNotification}
+            authService={authService}
+          />
+        </Paper>
+      ) : (
+        <Typography component="h2" variant="h6" color="primary" gutterBottom>
+          Notifications are only available in Pro package
+        </Typography>
+      )}
+    </>
   );
 };
 
